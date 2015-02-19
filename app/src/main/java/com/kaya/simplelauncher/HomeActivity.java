@@ -16,8 +16,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.lang.reflect.Method;
-
 public class HomeActivity extends Activity implements OnClickListener{
 
     private static final int ADMIN_INTENT = 15;
@@ -31,7 +29,6 @@ public class HomeActivity extends Activity implements OnClickListener{
     private CountDownTimer breakCountDownTimer;
     private boolean timerHasStarted = false;
     private Button startB;
-    private Button settingsB;
     public TextView text;
     public TextView status;
     public static long  study = 1;
@@ -39,6 +36,10 @@ public class HomeActivity extends Activity implements OnClickListener{
     private final long interval = 1 * 1000;
     private final long startBreakTime = 100 * 1000;
     private static final long SEC_PER_MIN = 60;
+    private boolean breakTime;
+    private Button appButton;
+    private Button btnEnableAdmin;
+    private Button btnDisableAdmin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,18 +48,21 @@ public class HomeActivity extends Activity implements OnClickListener{
                 Context.DEVICE_POLICY_SERVICE);
         mComponentName = new ComponentName(this, MyAdminReceiver.class);
         setContentView(R.layout.activity_home);
-        Button btnEnableAdmin = (Button) findViewById(R.id.btnEnable);
-        Button btnDisableAdmin = (Button) findViewById(R.id.btnDisable);
+        btnEnableAdmin = (Button) findViewById(R.id.btnEnable);
+        btnDisableAdmin = (Button) findViewById(R.id.btnDisable);
         startB = (Button) this.findViewById(R.id.button);
+        startB.setOnClickListener(this);
         btnEnableAdmin.setOnClickListener(this);
         btnDisableAdmin.setOnClickListener(this);
+        appButton = (Button) findViewById(R.id.apps_button);
         changeRingerMode(this, false);
 
+        breakTime = true;
         text = (TextView) this.findViewById(R.id.timer);
         status = (TextView) this.findViewById(R.id.status);
         countDownTimer = new MyCountDownTimer(startTime, interval);
         breakCountDownTimer = new BreakCountDownTimer(startBreakTime, interval);
-        text.setText(String.valueOf(startTime / 1000 / SEC_PER_MIN) + ":" + String.valueOf(startTime / 1000 % 60));
+        text.setText(String.valueOf(startTime / 1000 / SEC_PER_MIN) + ":" + "0" + String.valueOf(startTime / 1000 % 60));
     }
 
     @Override
@@ -70,23 +74,39 @@ public class HomeActivity extends Activity implements OnClickListener{
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mComponentName);
             intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,description);
             startActivityForResult(intent, ADMIN_INTENT);
-            if (!timerHasStarted) {
-                countDownTimer.start();
-                status.setText("STUDY!");
-                timerHasStarted = true;
-                startB.setText("STOP");
-            } else {
-                countDownTimer.cancel();
-                breakCountDownTimer.cancel();
-                status.setText("");
-                timerHasStarted = false;
-                startB.setText("RESTART");
-            }
         }
         if (v.getId() == R.id.btnDisable)
         {
             mDevicePolicyManager.removeActiveAdmin(mComponentName);
             Toast.makeText(getApplicationContext(), "Admin registration removed", Toast.LENGTH_SHORT).show();
+        }
+        if (v.getId() == R.id.button)
+        {
+            boolean isAdmin = mDevicePolicyManager.isAdminActive(mComponentName);
+            if (!timerHasStarted && isAdmin) {
+                countDownTimer.start();
+                status.setText("STUDY!");
+                timerHasStarted = true;
+                startB.setText("STOP");
+                breakTime = false;
+                appButton.setVisibility(View.GONE);
+                btnDisableAdmin.setVisibility(View.GONE);
+                btnEnableAdmin.setVisibility(View.GONE);
+
+            } else if (timerHasStarted) {
+                countDownTimer.cancel();
+                breakCountDownTimer.cancel();
+                status.setText("");
+                timerHasStarted = false;
+                startB.setText("RESTART");
+                breakTime = true;
+                appButton.setVisibility(View.VISIBLE);
+                btnDisableAdmin.setVisibility(View.VISIBLE);
+                btnEnableAdmin.setVisibility(View.VISIBLE);
+            }
+            else if (!isAdmin){
+                Toast.makeText(getApplicationContext(), "Enable first!", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -130,13 +150,12 @@ public class HomeActivity extends Activity implements OnClickListener{
             Log.d("Focus debug", "Lost focus !");
 
             boolean isAdmin = mDevicePolicyManager.isAdminActive(mComponentName);
-            if (isAdmin) {
+            if (isAdmin && !breakTime) {
                 Intent startMain = new Intent(Intent.ACTION_MAIN);
                 startMain.addCategory(Intent.CATEGORY_HOME);
                 startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(startMain);
                 mDevicePolicyManager.lockNow();
-                getFragmentManager().popBackStack();
 
             }
         }
@@ -165,6 +184,7 @@ public class HomeActivity extends Activity implements OnClickListener{
             countDownTimer.cancel();
             status.setText("BREAK!");
             breakCountDownTimer.start();
+            breakTime = true;
         }
         @Override
         public void onTick(long millisUntilFinished) {
@@ -207,6 +227,7 @@ public class HomeActivity extends Activity implements OnClickListener{
             status.setText("STUDY!");
             breakCountDownTimer.cancel();
             countDownTimer.start();
+            breakTime = false;
         }
     }
 
