@@ -10,11 +10,14 @@ import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
 import android.widget.Toast;
 
+import java.util.HashSet;
+
 public class SmsListener extends BroadcastReceiver{
 
     private DevicePolicyManager mDevicePolicyManager;
     private ComponentName mComponentName;
     private static final String MESSAGE = "Automated Message.";
+    private static HashSet phoneNumbers = new HashSet<String>();
 
     @Override
     public void onReceive(Context context, Intent intent)
@@ -41,7 +44,11 @@ public class SmsListener extends BroadcastReceiver{
                         for(int i=0; i<msgs.length; i++){
                             msgs[i] = SmsMessage.createFromPdu((byte[])pdus[i]);
                             msg_from = msgs[i].getOriginatingAddress();
-                            sendSMS(msg_from, MESSAGE);
+                            if (!phoneNumbers.contains(msg_from))
+                            {
+                                phoneNumbers.add(msg_from);
+                                sendSMS(msg_from, MESSAGE);
+                            }
                         }
                     }catch(Exception e){
 //                            Log.d("Exception caught",e.getMessage());
