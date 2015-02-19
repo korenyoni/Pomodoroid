@@ -27,7 +27,7 @@ public class HomeActivity extends Activity implements OnClickListener{
         setContentView(R.layout.activity_home);
         Button btnEnableAdmin = (Button) findViewById(R.id.btnEnable);
         btnEnableAdmin.setOnClickListener(this);
-        changeRingerMode(this);
+        changeRingerMode(this, false);
 
     }
 
@@ -54,14 +54,30 @@ public class HomeActivity extends Activity implements OnClickListener{
         }
     }
 
-    public static void changeRingerMode(Context context) {
+    public static void changeRingerMode(Context context, boolean on) {
 
         AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+
+        if (on)
+        {
+            audio.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+        }
+        else
+        {
+            audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        }
 
     }
     public void showApps(View v){
         Intent i = new Intent(this, AppsListActivity.class);
         startActivity(i);
     }
+
+    @Override
+    public void onDestroy()
+    {
+        changeRingerMode(this, true);
+        super.onDestroy();
+    }
+
 }
